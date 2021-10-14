@@ -48,7 +48,7 @@ class Game extends Phaser.Scene
                     //  Hide the login element
                     element.setVisible(false);
     
-                    window.location.href = "http://127.0.0.1:5503/?jogo=1";
+                    window.location.href += "?jogo=1";
                 }
             });
         }
