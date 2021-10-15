@@ -1,0 +1,25 @@
+{
+  "name": "palavra-na-testa",
+  "version": "0.0.2",
+  "description": "Multiplayer para adivinhar palavra",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Game-Awake/Palavra-na-Testa.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Game-Awake/Palavra-na-Testa/issues"
+  },
+  "homepage": "https://github.com/Game-Awake/Palavra-na-Testa#readme",
+  "dependencies": {
+    "ejs": "^3.1.5",
+    "express": "^4.17.1",
+    "socket.io": "^4.3.0"
+  }
+}
