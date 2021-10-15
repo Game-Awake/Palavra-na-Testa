@@ -45,20 +45,19 @@ class Main extends Phaser.Scene
             this.started = true;
         });
 
-        socket.once('timeout', (msg) => {
+        socket.on('timeout', (msg) => {
             element.setVisible(false);
             GameAwakeUtils.Counter.show(this, 400, 120, msg.word + "\nera a palavra!",1,3,() => {
                 socket.emit("next player");
             });
         });
 
-        socket.once('end game', (msg) => {
+        socket.on('end game', (msg) => {
             element.setVisible(false);
             GameAwakeUtils.Counter.show(this, 400, 120, "Fim do jogo!",0,3,() => {
                 window.location.reload();
             });
         });
-
 
         let textarea = document.getElementById('chat');
         let dica = document.getElementById("dica");

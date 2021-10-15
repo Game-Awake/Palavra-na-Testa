@@ -115,7 +115,7 @@ io.on('connection', (socket) => {
     }
     if(rooms[msg.room].password == msg.password) {
       if(socket.room) {
-        socket.leave(socket.room);
+        socket.leave("r"+socket.room);
       }
       socket.room = msg.room;
       socket.join("r"+socket.room);

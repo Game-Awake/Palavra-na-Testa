@@ -19,9 +19,7 @@ class Create extends Phaser.Scene
 
         socket.once("on create", (msg) => {
             sala = msg.sala;
-            //this.scene.remove("game");
             this.scene.start("game");
-
         });
 
         element.on('click', (event) => {
