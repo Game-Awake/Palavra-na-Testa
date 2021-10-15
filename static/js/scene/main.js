@@ -25,11 +25,11 @@ class Main extends Phaser.Scene
             document.getElementById("startButton").style.display = 'none';
         }
 
-        let list = this.add.text(30, 30, this.playerList, {
+        let list = this.add.text(100, 400, this.playerList, {
             fontSize: 30,
             fontFamily: 'Arial',
             color:'#000000',
-            wordWrap: { width: 200, useAdvancedWrap: true }
+            wordWrap: { width: 400, useAdvancedWrap: true }
         });
 
         element.addListener('click');

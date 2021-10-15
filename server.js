@@ -95,7 +95,7 @@ io.on('connection', (socket) => {
     socket.isMain = true;
     socket.room = i;
     rooms[i].password = msg.password;
-    rooms[i].players = [];      
+    rooms[i].players = [];
     rooms[i].currentPlayer = 0;
     socket.emit("on create", {sala:i});
   });
@@ -121,7 +121,7 @@ io.on('connection', (socket) => {
       socket.join("r"+socket.room);
       socket.playerName = msg.playerName;
       if(rooms[socket.room].playerList != "") {
-        rooms[socket.room].playerList += "\n";
+        rooms[socket.room].playerList += ", ";
       }
       rooms[socket.room].playerList += msg.playerName;
       rooms[socket.room].players.push({id:socket.id,playerName:msg.playerName,word:rooms[socket.room].words.length});    
