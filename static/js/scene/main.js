@@ -41,6 +41,7 @@ class Main extends Phaser.Scene
         socket.on('sent player', (msg) => {
             document.getElementById("jogador").innerHTML = "Jogador Atual:" + msg.playerName;
             document.getElementById("palavra").innerHTML = "Palavra Atual:" + msg.word;
+            GameAwakeUtils.Counter.hide();
             element.setVisible(true);            
             this.started = true;
         });
@@ -84,6 +85,7 @@ class Main extends Phaser.Scene
             {
                 if(this.started) {
                     let dicaValue = dica.value.toUpperCase();
+                    dica.value = "";
                     socket.emit('chat message', {playerName:playerName, msg:dicaValue});
                 }
             }

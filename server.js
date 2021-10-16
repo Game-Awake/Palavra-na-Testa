@@ -19,38 +19,67 @@ for(let i=0;i<10;i++) {
   });
 }
 
+function hasLogoutUsers(socket,room,player) {
+  let hasLogout = false;
+    while(room.currentPlayer < room.players.length && player.id == null) {
+      player = room.players[++room.currentPlayer];
+      hasLogout = true;
+    }
+    if(room.currentPlayer == room.players.length) {
+      room.hasEnded = false;
+      socket.emit("end game");
+      return true;
+    }
+    if(hasLogout) {
+      room.hasEnded = false;
+      nextPlayer(socket);
+      return true;
+    }
+    return false;
+}
+
 function sendRoom(room,emitter,data) {
   for(let i=0;i<room.players.length;i++) {
-    console.log(room.players[i].id);
-    console.log(emitter);
-    console.log(data);
-    io.to(room.players[i].id).emit(emitter,data);
+    let id = room.players[i].id;
+    if(id != null) {
+      io.to(id).emit(emitter,data);
+    }
   }
 }
 function nextPlayer(socket) {
-  let room = rooms[socket.room];
-  if(room.players.length <= room.currentPlayer) {
-    socket.emit("end game");
-  } else {
-    let currentPlayer = room.players[room.currentPlayer];
-    room.timeout = setTimeout(function(){
-      room.hasEnded = true;
-      clearTimeout(room.timeout);
-      sendRoom(room,"timeout",{word:room.words[currentPlayer.word]})
-    },60000);
-    for(let i=0;i<room.players.length;i++) {
-      let player = room.players[i];
-      let word = "";
-      if(currentPlayer.playerName == player.playerName) {
-        word = "-".repeat(room.words[currentPlayer.word].length);
-      } else {
-        word = room.words[currentPlayer.word];
+  try {
+    let room = rooms[socket.room];
+    if(room.players.length <= room.currentPlayer) {
+      socket.emit("end game");
+    } else {
+      let currentPlayer = room.players[room.currentPlayer];
+      if(hasLogoutUsers(socket,room,currentPlayer)) {
+        return;
       }
-      io.to(player.id).emit("sent player",{
-        playerName: currentPlayer.playerName,
-        word: word
-      });
+      room.timeout = setTimeout(function(){
+        room.hasEnded = true;
+        clearTimeout(room.timeout);
+        sendRoom(room,"timeout",{word:room.words[currentPlayer.word]})
+      },60000);
+      for(let i=0;i<room.players.length;i++) {
+        let player = room.players[i];
+        if(player.id == null) {
+          continue;
+        }        
+        let word = "";
+        if(currentPlayer.playerName == player.playerName) {
+          word = "-".repeat(room.words[currentPlayer.word].length);
+        } else {
+          word = room.words[currentPlayer.word];
+        }
+        io.to(player.id).emit("sent player",{
+          playerName: currentPlayer.playerName,
+          word: word
+        });
+      }
     }
+  } catch(ex) {
+    socket.emit("end game");
   }
 }
 
@@ -63,18 +92,34 @@ app.get('/game', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-  socket.isMain = false;  
-  console.log('a user connected');
+  socket.isMain = false;
   socket.on('disconnect', () => {
-    if(socket.isMain) {
-      rooms[socket.room] = {
-        isActive:false,
-        password:null,
-        words:[],
-        playerList:""
-      };
+    try {
+      if(socket.isMain) {
+        rooms[socket.room] = {
+          isActive:false,
+          password:null,
+          words:[],
+          playerList:""
+        };
+      } else {
+        let room = rooms[socket.room];
+        let playerList = "";
+        let comma = "";
+        for(let i=0;i<room.players.length;i++) {
+          if(room.players[i].id == socket.id) {
+            room.players[i].id = null;
+          } else {
+            playerList += comma + room.players[i].playerName;
+            comma = ", ";
+          }
+        }
+        room.playerList = playerList;
+        sendRoom(room,'refresh player list',{playerList:playerList});
+      }
+    } catch(ex) {
+
     }
-    console.log('user disconnected');
   });
   socket.on('creator', (msg) => {
     let i;
@@ -100,36 +145,52 @@ io.on('connection', (socket) => {
     socket.emit("on create", {sala:i});
   });
   socket.on('join', (msg) => {
-    if(msg.room) {
-      if(msg.room < 0 && msg.room > 9) {
+    try {
+      if(msg.room) {
+        if(msg.room < 0 && msg.room > 9) {
+          socket.emit("invalid room");
+          return;
+        }
+      } else {
         socket.emit("invalid room");
         return;
       }
-    } else {
-      socket.emit("invalid room");
-      return;
-    }
-    if(!rooms[msg.room].isActive) {
-      socket.emit("room not active");
-      return;
-    }
-    if(rooms[msg.room].password == msg.password) {
-      if(socket.room) {
-        socket.leave("r"+socket.room);
+      let room = rooms[msg.room];
+      if(!room.isActive) {
+        socket.emit("room not active");
+        return;
       }
-      socket.room = msg.room;
-      socket.join("r"+socket.room);
-      socket.playerName = msg.playerName;
-      if(rooms[socket.room].playerList != "") {
-        rooms[socket.room].playerList += ", ";
+      if(room.password == msg.password) {
+        if(socket.room) {
+          socket.leave("r"+socket.room);
+        }
+        socket.room = msg.room;
+        socket.join("r"+socket.room);
+        socket.playerName = msg.playerName;
+        let hasLogout = false;
+        for(let i=0;i<room.players.length;i++) {
+          if(socket.playerName == room.players[i].playerName && room.players[i].id == null) {
+            room.players[i].id = socket.id;
+            hasLogout = true;
+            break;
+          }
+        }
+        if(room.playerList != "") {
+          room.playerList += ", ";
+        }
+        room.playerList += msg.playerName;
+
+        if(!hasLogout) {
+          room.players.push({id:socket.id,playerName:msg.playerName,word:rooms[socket.room].words.length});    
+          room.words.push(msg.word);        
+        }
+        socket.emit("open",{isMain:socket.isMain,playerList:rooms[socket.room].playerList});
+        socket.to("r"+socket.room).emit("refresh player list",{playerList:rooms[socket.room].playerList});
+      } else {
+        socket.emit("wrong password");
       }
-      rooms[socket.room].playerList += msg.playerName;
-      rooms[socket.room].players.push({id:socket.id,playerName:msg.playerName,word:rooms[socket.room].words.length});    
-      rooms[socket.room].words.push(msg.word);
-      socket.emit("open",{isMain:socket.isMain,playerList:rooms[socket.room].playerList});
-      socket.to("r"+socket.room).emit("refresh player list",{playerList:rooms[socket.room].playerList});
-    } else {
-      socket.emit("wrong password");
+    } catch(ex) {
+      socket.emit("end game");
     }
   });
   socket.on('start', (msg) => {
@@ -152,12 +213,15 @@ io.on('connection', (socket) => {
   });
   socket.on('chat message', (msg) => {
     let room = rooms[socket.room];
-    console.log(room.currentPlayer == room.players.length);
+
     if(room.currentPlayer == room.players.length) {
+      socket.emit("end game");
       return;
     }
     let player = room.players[room.currentPlayer];
-    console.log(socket.playerName);
+    if(hasLogoutUsers(socket,room,player)) {
+      return;
+    }
     if(socket.id == player.id) {
       if(msg.msg == room.words[player.word]) {
         clearTimeout(room.timeout);
