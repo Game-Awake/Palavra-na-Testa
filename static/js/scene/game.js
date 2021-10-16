@@ -17,6 +17,28 @@ class Game extends Phaser.Scene
 
         element.addListener('click');
 
+        socket.off('no rooms');
+        socket.on('no rooms', function(msg) {
+            alert("Limite de sala atingida! Aguarde ou acesse a versão de um jogador");
+        });
+        socket.off('invalid room');
+        socket.on('invalid room', function(msg) {
+            alert("Sala inválida!");
+        });
+        socket.off('room not active');
+        socket.on('room not active', function(msg) {
+            alert("Sala inativa!");
+        });
+        socket.off('wrong password');
+        socket.on('wrong password', function(msg) {
+            alert("Senha incorreta!");
+        });
+        socket.off('open');
+        socket.on('open', (msg) => {
+            playerName = document.getElementById("nome").value;
+            this.scene.start('main',{isMain:msg.isMain,playerList:msg.playerList});
+        });
+
         if(sala != null) {
             let text = element.getChildByName("sala");
             text.value = sala;
@@ -24,33 +46,26 @@ class Game extends Phaser.Scene
             sala = null;
         }
 
+        document.getElementById("senha").value = senha;
+
         element.on('click', (event) => {
 
             if (event.target.name === 'startButton')
             {
-                socket.once('no rooms', function(msg) {
-                    alert("Limite de sala atingida! Aguarde ou acesse a versão de um jogador");
-                });
-                socket.once('invalid room', function(msg) {
-                    alert("Sala inválida!");
-                });
-                socket.once('room not active', function(msg) {
-                    alert("Sala inativa!");
-                });
-                socket.once('wrong password', function(msg) {
-                    alert("Senha incorreta!");
-                });
-                socket.once('open', (msg) => {
-                    playerName = document.getElementById("nome").value;
-                    this.scene.start('main',{isMain:msg.isMain,playerList:msg.playerList});
-                });
-
-                socket.emit("join", {
-                    room: document.getElementById("sala").value,                    
-                    password: document.getElementById("senha").value,
-                    playerName: document.getElementById("nome").value,                    
-                    word: document.getElementById("palavra").value.toUpperCase()
-                });
+                playerName = document.getElementById("nome").value;
+                let word = document.getElementById("palavra").value.toUpperCase();
+                if(playerName == "") {
+                    alert("Nome Obrigatório!");
+                } else if(word == "") {
+                    alert("Palavra Obrigatório!");
+                } else {
+                    socket.emit("join", {
+                        room: document.getElementById("sala").value,                    
+                        password: document.getElementById("senha").value,
+                        playerName: playerName,                    
+                        word: word
+                    });
+                }
             } else if (event.target.name === 'roomButton')
             {
                 this.scene.start('create');
@@ -90,9 +105,9 @@ const options = {
 }
 
 var game = new Phaser.Game(config);
-
 var playerName = "";
 var sala = null;
+var senha = "";
 
 function checkUserAgent(name)
 {

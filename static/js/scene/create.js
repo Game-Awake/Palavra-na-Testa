@@ -26,10 +26,8 @@ class Create extends Phaser.Scene
 
             if (event.target.name === 'createButton')
             {
-                socket.emit("creator",{password:document.getElementById("senha").value});
-                socket.once('no rooms', function(msg) {
-                    alert("Limite de sala atingida! Aguarde ou acesse a versão de um jogador");
-                });
+                senha = document.getElementById("senha").value;
+                socket.emit("creator",{password:senha});
             }
         });
 

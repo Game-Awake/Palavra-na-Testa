@@ -147,7 +147,7 @@ io.on('connection', (socket) => {
   socket.on('join', (msg) => {
     try {
       if(msg.room) {
-        if(msg.room < 0 && msg.room > 9) {
+        if(msg.room < 0 || msg.room > 9) {
           socket.emit("invalid room");
           return;
         }
